@@ -1,5 +1,5 @@
-// impl generates method stubs for implementing an interface.
-package main
+// Package impl generates method stubs for implementing an interface.
+package impl
 
 import (
 	"bytes"
@@ -271,7 +271,7 @@ func funcs(iface string, srcDir string) ([]Func, error) {
 const stub = "func ({{.Recv}}) {{.Name}}" +
 	"({{range .Params}}{{.Name}} {{.Type}}, {{end}})" +
 	"({{range .Res}}{{.Name}} {{.Type}}, {{end}})" +
-	"{\n" + "panic(\"not implemented\")" + "}\n\n"
+	"{\n" + "return nil, errors.New(\"not implemented\")" + "}\n\n"
 
 var tmpl = template.Must(template.New("test").Parse(stub))
 
@@ -305,32 +305,30 @@ func validReceiver(recv string) bool {
 	return err == nil
 }
 
-func main() {
-	flag.Parse()
-
-	if len(flag.Args()) < 2 {
+// Stub generates a stub using the receiver function to implement the provided interface
+func Stub(recv, iface, srcDir string) string {
+	if recv == "" || iface == "" {
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
 	}
 
-	recv, iface := flag.Arg(0), flag.Arg(1)
 	if !validReceiver(recv) {
 		fatal(fmt.Sprintf("invalid receiver: %q", recv))
 	}
 
-	if *flagSrcDir == "" {
+	if srcDir == "" {
 		if dir, err := os.Getwd(); err == nil {
-			*flagSrcDir = dir
+			srcDir = dir
 		}
 	}
 
-	fns, err := funcs(iface, *flagSrcDir)
+	fns, err := funcs(iface, srcDir)
 	if err != nil {
 		fatal(err)
 	}
 
 	src := genStubs(recv, fns)
-	fmt.Print(string(src))
+	return string(src)
 }
 
 func fatal(msg interface{}) {
